@@ -68,12 +68,7 @@ app.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 }));
 app.get('/dashboard', authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const data = yield prisma.order.findMany({
-            include: {
-                product: true,
-                customer: true
-            }
-        });
+        const data = yield prisma.orders.findMany();
         res.status(200).json({
             msg: 'Success',
             data: data

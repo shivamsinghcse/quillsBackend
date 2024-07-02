@@ -58,12 +58,7 @@ app.post('/signin', async (req, res) => {
 })
 app.get('/dashboard', authMiddleware, async (req, res) => {
     try {
-      const data = await prisma.order.findMany({
-        include: {
-          product: true,
-          customer: true
-        }
-      });
+      const data = await prisma.orders.findMany();
       res.status(200).json({
         msg: 'Success',
         data: data
