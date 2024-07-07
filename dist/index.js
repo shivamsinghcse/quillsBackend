@@ -18,23 +18,28 @@ const express_1 = __importDefault(require("express"));
 const zod_1 = __importDefault(require("zod"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const PORT = '3000';
+const PORT = "3000";
 const prisma = new client_1.PrismaClient();
 const app = (0, express_1.default)();
 app.use(body_parser_1.default.json());
 const signInSchema = zod_1.default.object({
     email: zod_1.default.string().email(),
-    password: zod_1.default.string().min(6)
+    password: zod_1.default.string().min(6),
+});
+const buySchema = zod_1.default.object({
+    product: zod_1.default.string().array(),
+    quantity: zod_1.default.number(),
+    customer: zod_1.default.string().array(),
 });
 function authMiddleware(req, res, next) {
-    const reqtoken = req.headers['authorization'];
+    const reqtoken = req.headers["authorization"];
     if (reqtoken !== undefined) {
-        const data = reqtoken.split(' ');
+        const data = reqtoken.split(" ");
         const token = data[1];
-        const varify = jsonwebtoken_1.default.verify(token, 'mysupersecreatpassword', (err, decode) => {
+        const varify = jsonwebtoken_1.default.verify(token, "mysupersecreatpassword", (err, decode) => {
             if (err) {
                 res.status(401).json({
-                    msg: 'Invalid token'
+                    msg: "Invalid token",
                 });
             }
             else {
@@ -43,42 +48,63 @@ function authMiddleware(req, res, next) {
         });
     }
 }
-app.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post("/signin", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userdata = yield req.body;
     const validate = signInSchema.safeParse(userdata);
     console.log(validate.data);
     if (validate.success) {
-        const user = yield prisma.user.findUnique({ where: { email: validate.data.email } });
+        const user = yield prisma.user.findUnique({
+            where: { email: validate.data.email },
+        });
         if (!user) {
             res.status(401).json({
-                msg: 'Login Credintials are Incorrect'
+                msg: "Login Credintials are Incorrect",
             });
         }
         else {
             const passwordValidate = yield bcryptjs_1.default.compare(validate.data.password, user.password);
             if (passwordValidate) {
                 res.status(401).json({
-                    msg: 'Login Credintials are Incorrect'
+                    msg: "Login Credintials are Incorrect",
                 });
             }
-            const token = jsonwebtoken_1.default.sign({ userId: user.id, email: user.email }, 'mysupersecreatpassword');
+            const token = jsonwebtoken_1.default.sign({ userId: user.id, email: user.email }, "mysupersecreatpassword");
             res.status(200).json({ token });
         }
     }
 }));
-app.get('/dashboard', authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.get("/dashboard", authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const data = yield prisma.orders.findMany();
         res.status(200).json({
-            msg: 'Success',
-            data: data
+            msg: "Success",
+            data: data,
         });
     }
     catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
         res.status(500).json({
-            error: 'Internal server error'
+            error: "Internal server error",
         });
+    }
+}));
+app.post("/buy", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const reqData = req.body;
+    const validateBuy = buySchema.safeParse(reqData);
+    if (validateBuy.success) {
+        try {
+            const uploadData = yield prisma.orders.create({
+                data: validateBuy.data,
+            });
+            res.status(200).json({
+                msg: uploadData
+            });
+        }
+        catch (error) {
+            res.status(500).json({
+                msg: "internal server error",
+            });
+        }
     }
 }));
 app.listen(PORT, () => {

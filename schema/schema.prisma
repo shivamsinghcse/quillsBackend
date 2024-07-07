@@ -44,5 +44,5 @@ model Orders {
   id       String   @id @default(cuid()) @map("_id")
   product  String[]
   quantity Int
-  Customer String[]
+  customer String[]
 }
